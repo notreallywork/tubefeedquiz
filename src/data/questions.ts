@@ -136,10 +136,10 @@ export const questionBank: Question[] = [
       visual: "recovery_timeline"
     },
     items: [
-      { id: "swallow", text: "Formal swallow assessment by speech pathology", order: 0 },
-      { id: "texture", text: "Begin texture-modified oral diet with EN at full rate", order: 1 },
-      { id: "reduce", text: "Reduce EN rate as oral intake increases (monitor intake)", order: 2 },
-      { id: "remove", text: "Cease EN and remove NG tube when oral intake meets ≥75% of needs", order: 3 }
+      { id: "swallow", text: "Swallow assessment (speech pathology)", order: 0 },
+      { id: "texture", text: "Start texture-modified oral diet + EN", order: 1 },
+      { id: "reduce", text: "Reduce EN as oral intake increases", order: 2 },
+      { id: "remove", text: "Stop EN and remove tube (oral ≥75%)", order: 3 }
     ],
     correctOrder: ["swallow", "texture", "reduce", "remove"],
     optimalAnswer: "swallow,texture,reduce,remove",
