@@ -140,6 +140,33 @@ module.exports = {
           "0%": { transform: "translate(-50%, -50%) scale(0)", opacity: "0.6" },
           "100%": { transform: "translate(-50%, -50%) scale(4)", opacity: "0" },
         },
+        "float": {
+          "0%, 100%": { transform: "translateY(0) translateX(0)", opacity: "0.5" },
+          "25%": { transform: "translateY(-20px) translateX(10px)", opacity: "1" },
+          "50%": { transform: "translateY(-10px) translateX(-5px)", opacity: "0.7" },
+          "75%": { transform: "translateY(-25px) translateX(8px)", opacity: "0.9" },
+        },
+        "float-slow": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-12px)" },
+        },
+        "tube-draw": {
+          "0%": { strokeDashoffset: "300" },
+          "100%": { strokeDashoffset: "0" },
+        },
+        "drip": {
+          "0%, 100%": { transform: "translateY(0)", opacity: "0.6" },
+          "50%": { transform: "translateY(14px)", opacity: "0.2" },
+        },
+        "liquid-shimmer": {
+          "0%, 100%": { opacity: "0.12", transform: "translateY(0)" },
+          "50%": { opacity: "0.22", transform: "translateY(2px)" },
+        },
+        "pulse-ring": {
+          "0%": { transform: "scale(1)", opacity: "0.4" },
+          "50%": { transform: "scale(1.8)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "0.4" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -155,6 +182,12 @@ module.exports = {
         "count-up": "count-up 0.3s ease-out",
         "bar-grow": "bar-grow 0.8s ease-out forwards",
         "ripple": "ripple 0.6s ease-out forwards",
+        "float": "float 12s ease-in-out infinite",
+        "float-slow": "float-slow 6s ease-in-out infinite",
+        "tube-draw": "tube-draw 3s ease-out forwards",
+        "drip": "drip 2s ease-in-out infinite",
+        "liquid-shimmer": "liquid-shimmer 4s ease-in-out infinite",
+        "pulse-ring": "pulse-ring 3s ease-in-out infinite",
       },
     },
   },

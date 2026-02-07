@@ -272,6 +272,20 @@
     background: linear-gradient(180deg, #007DB9 0%, #64DCB4 100%);
     background-size: 100% 200%;
   }
+
+  .attract-gradient-v2 {
+    background: linear-gradient(160deg, #0a1628 0%, #0d3b66 30%, #006d8f 60%, #1a8a7a 100%);
+    position: relative;
+  }
+
+  .attract-gradient-v2::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, rgba(100, 220, 180, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 30% 70%, rgba(0, 125, 185, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
   
   /* Stats ticker */
   .stats-ticker {
