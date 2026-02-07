@@ -10,7 +10,7 @@ export type QuestionTheme = 'timing' | 'access' | 'tolerance' | 'safety' | 'tran
 export interface PlayerProfile {
   profession: Profession | null;
   experience: Experience | null;
-  institution: string;
+  country: string;
 }
 
 export interface Option {

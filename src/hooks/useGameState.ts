@@ -19,7 +19,7 @@ const initialState: GameState = {
   player: {
     profession: null,
     experience: null,
-    institution: ''
+    country: ''
   },
   questions: [],
   currentQuestionIndex: 0,
