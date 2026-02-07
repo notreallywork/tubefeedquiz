@@ -29,12 +29,10 @@ export function DragAnatomy({
   const [placedItem, setPlacedItem] = useState<{ item: DragItem; zone: string } | null>(null);
   const [flashZone, setFlashZone] = useState<string | null>(null);
 
-  // Refs for real-time access
   const draggedItemRef = useRef<DragItem | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Keep ref in sync
   useEffect(() => {
     draggedItemRef.current = draggedItem;
   }, [draggedItem]);
@@ -49,7 +47,6 @@ export function DragAnatomy({
   const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent, item: DragItem) => {
     e.preventDefault();
 
-    // Prevent dragging if this item is already correctly placed
     if (placedItem?.item.id === item.id && placedItem?.zone === 'post-pyloric') {
       return;
     }
@@ -60,7 +57,6 @@ export function DragAnatomy({
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
 
-    // Store offset from center for smoother dragging
     dragOffsetRef.current = {
       x: clientX - rect.left - rect.width / 2,
       y: clientY - rect.top - rect.height / 2
@@ -76,7 +72,7 @@ export function DragAnatomy({
     playSelectionSound();
 
     const handleMove = (moveEvent: MouseEvent | TouchEvent) => {
-      moveEvent.preventDefault(); // CRITICAL: Prevent scroll
+      moveEvent.preventDefault();
 
       const moveX = 'touches' in moveEvent
         ? (moveEvent as TouchEvent).touches[0].clientX
@@ -86,11 +82,10 @@ export function DragAnatomy({
         : (moveEvent as MouseEvent).clientY;
 
       setDragPosition({
-        x: moveX - dragOffsetRef.current.x - 100, // Center the 200px wide item
-        y: moveY - dragOffsetRef.current.y - 40   // Center the 80px tall item
+        x: moveX - dragOffsetRef.current.x - 100,
+        y: moveY - dragOffsetRef.current.y - 28
       });
 
-      // Check zone hover
       const zones = document.querySelectorAll('[data-zone]');
       let foundZone: string | null = null;
 
@@ -125,7 +120,6 @@ export function DragAnatomy({
         ? (endEvent as TouchEvent).changedTouches[0].clientY
         : (endEvent as MouseEvent).clientY;
 
-      // Find drop zone
       const zones = document.querySelectorAll('[data-zone]');
       let droppedInZone: string | null = null;
 
@@ -144,23 +138,18 @@ export function DragAnatomy({
 
       if (droppedInZone) {
         if (droppedInZone === 'post-pyloric' && currentItem.correct) {
-          // Correct placement
           setPlacedItem({ item: currentItem, zone: droppedInZone });
           setFlashZone(null);
           playSelectionSound();
           onDrop(currentItem.id, true);
         } else {
-          // Wrong zone - flash red
           setFlashZone(droppedInZone);
           setTimeout(() => setFlashZone(null), 400);
-
-          // Return to tray (don't place)
           setPlacedItem(null);
           onDrop(currentItem.id, false);
         }
       }
 
-      // Reset drag state
       setDraggedItem(null);
       setDragPosition(null);
       setHoveredZone(null);
@@ -175,7 +164,6 @@ export function DragAnatomy({
     document.addEventListener('touchend', handleEnd);
   }, [placedItem, playSelectionSound, onDrop, cleanupListeners]);
 
-  // Get item to show in tray (filter out placed item)
   const trayItems = items.filter(item =>
     !(placedItem?.item.id === item.id && placedItem?.zone === 'post-pyloric')
   );
@@ -191,164 +179,275 @@ export function DragAnatomy({
     return { bg: 'transparent', border: '#BBBBBB', shadow: 'none' };
   };
 
+  const getZoneDash = (zone: string) => {
+    return hoveredZone === zone || flashZone === zone || placedItem?.zone === zone ? '0' : '6,4';
+  };
+
   return (
-    <div ref={containerRef} className="flex gap-8 h-[500px] select-none">
+    <div ref={containerRef} className="flex gap-6 h-[500px] select-none">
       {/* Tube Tray */}
-      <div className="w-[280px] bg-white rounded-2xl shadow-card p-6 flex flex-col gap-4">
-        <span className="caption uppercase tracking-wider mb-2">Drag to place</span>
+      <div className="w-[260px] flex flex-col gap-3 pt-2">
+        <span className="caption uppercase tracking-wider mb-1 px-1">Drag to place</span>
         {trayItems.map((item) => (
           <div
             key={item.id}
             onMouseDown={(e) => handleDragStart(e, item)}
             onTouchStart={(e) => handleDragStart(e, item)}
             className={`
-              w-full h-20 bg-white border-2 rounded-xl
+              w-full h-[56px] bg-white border-2 rounded-xl
               flex items-center justify-center cursor-grab touch-none
-              transition-all duration-200
+              transition-all duration-200 px-3
               ${draggedItem?.id === item.id ? 'opacity-0' : 'opacity-100'}
               border-blue hover:-translate-y-0.5 hover:shadow-card
             `}
           >
-            <span className="body-text font-medium">{item.name}</span>
+            <span className="text-[20px] font-medium text-center leading-tight">{item.name}</span>
           </div>
         ))}
 
-        {/* Show placed item as "completed" if correct */}
         {placedItem?.zone === 'post-pyloric' && (
-          <div className="w-full h-20 bg-green border-2 border-green rounded-xl flex items-center justify-center">
-            <span className="body-text font-medium text-black">{placedItem.item.name}</span>
-            <span className="ml-2 text-green-600">&#10003;</span>
+          <div className="w-full h-[56px] bg-green-extralight border-2 border-green rounded-xl flex items-center justify-center px-3">
+            <span className="text-[20px] font-medium text-black">{placedItem.item.name}</span>
+            <span className="ml-2 text-[20px]">&#10003;</span>
           </div>
         )}
       </div>
 
-      {/* Anatomy Area - Clean medical diagram */}
+      {/* Anatomy Diagram */}
       <div
         id="anatomy-area"
         className="flex-1 bg-white rounded-2xl shadow-card relative flex items-center justify-center overflow-hidden"
       >
-        {/* Subtle grid background */}
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: 'radial-gradient(circle, #007DB9 1px, transparent 1px)',
-            backgroundSize: '20px 20px'
-          }}
-        />
-
-        <svg width="480" height="460" viewBox="0 0 480 460" className="relative z-10">
+        <svg width="520" height="480" viewBox="0 0 520 480" className="relative z-10">
           <defs>
-            {/* Gradient for the body silhouette */}
-            <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#E8EEF2" />
-              <stop offset="100%" stopColor="#D4DEE6" />
+            <linearGradient id="skinGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F5DEB3" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#E8C99B" stopOpacity="0.3" />
             </linearGradient>
-            {/* Gradient for the esophagus/GI tract */}
-            <linearGradient id="giGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FFB87A" />
-              <stop offset="100%" stopColor="#FF9A4D" />
+            <linearGradient id="esophGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#E8A0A0" />
+              <stop offset="100%" stopColor="#D4817F" />
             </linearGradient>
-            {/* Glow filter */}
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="blur" />
+            <linearGradient id="stomachGrad" x1="0.2" y1="0" x2="0.8" y2="1">
+              <stop offset="0%" stopColor="#F2B8A0" />
+              <stop offset="50%" stopColor="#E89880" />
+              <stop offset="100%" stopColor="#D4817F" />
+            </linearGradient>
+            <linearGradient id="intestineGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#E8A090" />
+              <stop offset="100%" stopColor="#D09080" />
+            </linearGradient>
+            <radialGradient id="stomachInner" cx="0.4" cy="0.4" r="0.6">
+              <stop offset="0%" stopColor="#F5C8B0" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#E8A090" stopOpacity="0.2" />
+            </radialGradient>
+            <filter id="softShadow">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#000" floodOpacity="0.06" />
+            </filter>
+            <filter id="organGlow">
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
-            {/* Drop shadow */}
-            <filter id="dropShadow">
-              <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.08" />
-            </filter>
+            {/* Rugae pattern for stomach interior */}
+            <pattern id="rugae" x="0" y="0" width="20" height="12" patternUnits="userSpaceOnUse">
+              <path d="M0 6 Q5 3, 10 6 Q15 9, 20 6" fill="none" stroke="#D09070" strokeWidth="0.5" opacity="0.3" />
+            </pattern>
           </defs>
 
-          {/* Clean torso silhouette */}
-          <g filter="url(#dropShadow)">
-            {/* Head */}
-            <ellipse cx="240" cy="42" rx="32" ry="38" fill="url(#bodyGrad)" stroke="#C0CCD6" strokeWidth="1.5" />
-            {/* Neck */}
-            <rect x="225" y="76" width="30" height="24" rx="8" fill="url(#bodyGrad)" stroke="#C0CCD6" strokeWidth="1.5" />
-            {/* Torso - smooth rounded shape */}
+          {/* --- TORSO OUTLINE --- */}
+          {/* Clean anterior torso, medical illustration style */}
+          <g filter="url(#softShadow)">
+            {/* Torso - anatomically proportioned, no head/arms, just trunk */}
             <path
-              d="M170 100
-                 C 170 100, 145 110, 130 140
-                 C 115 170, 110 210, 112 250
-                 C 114 290, 120 340, 130 380
-                 L 130 440
-                 L 350 440
-                 L 350 380
-                 C 360 340, 366 290, 368 250
-                 C 370 210, 365 170, 350 140
-                 C 335 110, 310 100, 310 100
-                 Z"
-              fill="url(#bodyGrad)"
-              stroke="#C0CCD6"
+              d="M160 30
+                 C 140 32, 110 50, 95 80
+                 C 78 115, 72 160, 72 200
+                 C 72 260, 78 320, 88 370
+                 L 92 430 L 100 460
+                 L 420 460 L 428 430
+                 L 432 370
+                 C 442 320, 448 260, 448 200
+                 C 448 160, 442 115, 425 80
+                 C 410 50, 380 32, 360 30
+                 C 330 24, 295 20, 260 20
+                 C 225 20, 190 24, 160 30 Z"
+              fill="url(#skinGrad)"
+              stroke="#D4C4A8"
+              strokeWidth="1.2"
+            />
+            {/* Clavicle lines */}
+            <path d="M160 42 Q200 50, 260 48 Q320 50, 360 42" fill="none" stroke="#D4C4A8" strokeWidth="0.8" opacity="0.5" />
+            {/* Rib hints - very subtle */}
+            <g opacity="0.12" stroke="#C0A888" strokeWidth="0.8" fill="none">
+              <path d="M140 90 Q200 100, 260 98 Q320 100, 380 90" />
+              <path d="M130 120 Q200 132, 260 130 Q320 132, 390 120" />
+              <path d="M125 150 Q200 164, 260 162 Q320 164, 395 150" />
+              <path d="M122 180 Q200 196, 260 194 Q320 196, 398 180" />
+              <path d="M130 210 Q200 224, 260 222 Q320 224, 390 210" />
+            </g>
+            {/* Midline */}
+            <line x1="260" y1="30" x2="260" y2="460" stroke="#D4C4A8" strokeWidth="0.5" opacity="0.2" />
+          </g>
+
+          {/* --- NASAL ENTRY POINT --- */}
+          <g opacity="0.7">
+            <circle cx="252" cy="14" r="5" fill="#E0C0A0" stroke="#C8A080" strokeWidth="1" />
+            <text x="270" y="18" fill="#999" fontSize="10" fontWeight="400">Nasal entry</text>
+          </g>
+
+          {/* --- ESOPHAGUS --- */}
+          <path
+            d="M256 20 C256 40, 254 60, 250 80 C246 100, 240 130, 238 155 C236 170, 234 185, 230 200"
+            fill="none"
+            stroke="url(#esophGrad)"
+            strokeWidth="9"
+            strokeLinecap="round"
+            opacity="0.6"
+          />
+          {/* Esophagus inner lumen */}
+          <path
+            d="M256 20 C256 40, 254 60, 250 80 C246 100, 240 130, 238 155 C236 170, 234 185, 230 200"
+            fill="none"
+            stroke="#F5D0C0"
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.5"
+          />
+
+          {/* --- STOMACH --- */}
+          <g filter="url(#organGlow)">
+            {/* Stomach - realistic J-shape */}
+            <path
+              d="M230 200
+                 C 225 195, 195 195, 180 210
+                 C 160 230, 150 260, 155 290
+                 C 160 320, 180 345, 210 350
+                 C 235 354, 260 348, 278 332
+                 C 296 316, 306 292, 300 268
+                 C 295 250, 280 238, 268 230
+                 C 256 222, 245 215, 240 210
+                 C 236 206, 232 203, 230 200 Z"
+              fill="url(#stomachGrad)"
+              stroke="#C07060"
               strokeWidth="1.5"
+              opacity="0.85"
             />
-            {/* Shoulders / arms (stumps) */}
-            <path d="M170 100 C 150 105, 100 120, 80 150 C 75 160, 78 168, 90 165 C 110 158, 138 140, 155 128"
-              fill="url(#bodyGrad)" stroke="#C0CCD6" strokeWidth="1.5" />
-            <path d="M310 100 C 330 105, 380 120, 400 150 C 405 160, 402 168, 390 165 C 370 158, 342 140, 325 128"
-              fill="url(#bodyGrad)" stroke="#C0CCD6" strokeWidth="1.5" />
-          </g>
-
-          {/* GI Tract illustration */}
-          <g opacity="0.9">
-            {/* Esophagus - tube from throat */}
+            {/* Stomach rugae texture */}
             <path
-              d="M240 80 L240 185"
+              d="M230 200
+                 C 225 195, 195 195, 180 210
+                 C 160 230, 150 260, 155 290
+                 C 160 320, 180 345, 210 350
+                 C 235 354, 260 348, 278 332
+                 C 296 316, 306 292, 300 268
+                 C 295 250, 280 238, 268 230
+                 C 256 222, 245 215, 240 210
+                 C 236 206, 232 203, 230 200 Z"
+              fill="url(#rugae)"
+              opacity="0.5"
+            />
+            {/* Stomach inner highlight */}
+            <path
+              d="M210 220
+                 C 195 235, 175 260, 178 285
+                 C 180 305, 195 325, 215 335"
               fill="none"
-              stroke="url(#giGrad)"
-              strokeWidth="10"
-              strokeLinecap="round"
-              opacity="0.7"
-            />
-
-            {/* Stomach */}
-            <path
-              d="M240 185
-                 C 240 185, 200 190, 185 215
-                 C 170 240, 175 270, 195 285
-                 C 215 300, 250 295, 265 275
-                 C 280 255, 275 230, 265 215
-                 C 255 200, 240 195, 240 195"
-              fill="#FFE0C2"
-              stroke="#FF9A4D"
+              stroke="#F5D5C5"
               strokeWidth="2"
-              opacity="0.8"
-            />
-            <text x="222" y="250" textAnchor="middle" fill="#CC6600" fontSize="11" fontWeight="500" opacity="0.6">Stomach</text>
-
-            {/* Duodenum / Small intestine entrance */}
-            <path
-              d="M265 275
-                 C 280 290, 300 300, 305 320
-                 C 310 340, 295 360, 275 365
-                 C 255 370, 240 355, 235 340"
-              fill="none"
-              stroke="#FF9A4D"
-              strokeWidth="6"
               strokeLinecap="round"
-              opacity="0.6"
+              opacity="0.4"
             />
+            {/* Greater curvature fold lines */}
+            <g opacity="0.2" stroke="#A06050" strokeWidth="0.8" fill="none">
+              <path d="M185 225 Q195 240, 175 260" />
+              <path d="M175 265 Q170 280, 175 300" />
+              <path d="M185 310 Q200 330, 220 340" />
+            </g>
+            {/* Fundus label */}
+            <text x="178" y="228" fill="#A07060" fontSize="9" fontWeight="400" opacity="0.6">Fundus</text>
+            {/* Body label */}
+            <text x="168" y="280" fill="#A07060" fontSize="9" fontWeight="400" opacity="0.6">Body</text>
           </g>
 
-          {/* IV line indicator (parenteral) */}
-          <g opacity="0.6">
-            <line x1="95" y1="130" x2="115" y2="160" stroke="#BBBBBB" strokeWidth="2" strokeDasharray="4,3" />
-            <circle cx="90" cy="125" r="6" fill="none" stroke="#BBBBBB" strokeWidth="1.5" />
-            <line x1="87" y1="125" x2="93" y2="125" stroke="#BBBBBB" strokeWidth="1.5" />
-            <line x1="90" y1="122" x2="90" y2="128" stroke="#BBBBBB" strokeWidth="1.5" />
+          {/* --- PYLORUS (gateway between stomach and duodenum) --- */}
+          <g opacity="0.7">
+            <circle cx="278" cy="335" r="6" fill="#D09080" stroke="#B07060" strokeWidth="1.2" />
+            <circle cx="278" cy="335" r="2.5" fill="#F0D0C0" />
           </g>
 
-          {/* Drop Zones - clean rounded rectangles with labels */}
-          {/* Gastric Zone */}
+          {/* --- DUODENUM --- */}
+          <path
+            d="M278 341
+               C 285 355, 300 365, 315 370
+               C 340 378, 358 375, 365 360
+               C 372 345, 370 325, 358 312
+               C 346 300, 330 298, 318 305"
+            fill="none"
+            stroke="url(#intestineGrad)"
+            strokeWidth="10"
+            strokeLinecap="round"
+            opacity="0.65"
+          />
+          {/* Duodenum inner */}
+          <path
+            d="M278 341
+               C 285 355, 300 365, 315 370
+               C 340 378, 358 375, 365 360
+               C 372 345, 370 325, 358 312
+               C 346 300, 330 298, 318 305"
+            fill="none"
+            stroke="#F5D5C5"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            opacity="0.4"
+          />
+
+          {/* --- JEJUNUM (beginning) --- */}
+          <path
+            d="M318 305
+               C 305 310, 290 325, 285 340
+               C 280 360, 290 378, 305 388
+               C 320 398, 340 395, 350 385"
+            fill="none"
+            stroke="url(#intestineGrad)"
+            strokeWidth="8"
+            strokeLinecap="round"
+            opacity="0.45"
+          />
+
+          {/* --- SUBCLAVIAN VEIN area for parenteral --- */}
+          <g opacity="0.5">
+            <path
+              d="M155 55 C165 50, 175 48, 190 52"
+              fill="none"
+              stroke="#7090C0"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+            <path
+              d="M155 55 C145 58, 135 65, 130 75"
+              fill="none"
+              stroke="#7090C0"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+            {/* Small catheter icon */}
+            <line x1="140" y1="48" x2="155" y2="55" stroke="#7090C0" strokeWidth="1.5" strokeDasharray="3,2" />
+          </g>
+
+          {/* === DROP ZONES === */}
+
+          {/* Gastric Zone — over the stomach */}
           <g data-zone="gastric">
             <rect
-              x="160" y="190" width="130" height="105" rx="16"
+              x="148" y="195" width="155" height="162" rx="14"
               fill={getZoneStyle('gastric').bg}
               stroke={getZoneStyle('gastric').border}
               strokeWidth="2"
-              strokeDasharray={hoveredZone === 'gastric' || flashZone === 'gastric' || placedItem?.zone === 'gastric' ? '0' : '6,4'}
+              strokeDasharray={getZoneDash('gastric')}
               style={{
                 transition: 'all 0.25s ease',
                 filter: getZoneStyle('gastric').shadow !== 'none' ? `drop-shadow(${getZoneStyle('gastric').shadow})` : 'none'
@@ -356,35 +455,34 @@ export function DragAnatomy({
             />
           </g>
 
-          {/* Post-pyloric Zone */}
+          {/* Post-pyloric Zone — over duodenum/jejunum */}
           <g data-zone="post-pyloric">
             <rect
-              x="220" y="305" width="110" height="75" rx="16"
+              x="275" y="298" width="100" height="100" rx="14"
               fill={getZoneStyle('post-pyloric').bg}
               stroke={getZoneStyle('post-pyloric').border}
               strokeWidth="2"
-              strokeDasharray={hoveredZone === 'post-pyloric' || flashZone === 'post-pyloric' || placedItem?.zone === 'post-pyloric' ? '0' : '6,4'}
+              strokeDasharray={getZoneDash('post-pyloric')}
               style={{
                 transition: 'all 0.25s ease',
                 filter: getZoneStyle('post-pyloric').shadow !== 'none' ? `drop-shadow(${getZoneStyle('post-pyloric').shadow})` : 'none'
               }}
             />
-            {/* Show placed item label in zone */}
             {placedItem?.zone === 'post-pyloric' && (
-              <text x="275" y="348" textAnchor="middle" fill="#007DB9" fontSize="13" fontWeight="600">
+              <text x="325" y="354" textAnchor="middle" fill="#007DB9" fontSize="12" fontWeight="600">
                 {placedItem.item.name}
               </text>
             )}
           </g>
 
-          {/* Parenteral Zone */}
+          {/* Parenteral Zone — over subclavian/upper chest */}
           <g data-zone="parenteral">
             <rect
-              x="68" y="120" width="70" height="60" rx="14"
+              x="110" y="35" width="85" height="55" rx="12"
               fill={getZoneStyle('parenteral').bg}
               stroke={getZoneStyle('parenteral').border}
               strokeWidth="2"
-              strokeDasharray={hoveredZone === 'parenteral' || flashZone === 'parenteral' || placedItem?.zone === 'parenteral' ? '0' : '6,4'}
+              strokeDasharray={getZoneDash('parenteral')}
               style={{
                 transition: 'all 0.25s ease',
                 filter: getZoneStyle('parenteral').shadow !== 'none' ? `drop-shadow(${getZoneStyle('parenteral').shadow})` : 'none'
@@ -392,34 +490,37 @@ export function DragAnatomy({
             />
           </g>
 
-          {/* Zone Labels - positioned outside the body with leader lines */}
+          {/* === ZONE LABELS with leader lines === */}
+
           {/* Gastric label */}
           <g>
-            <line x1="155" y1="242" x2="120" y2="242" stroke="#888" strokeWidth="1" opacity="0.5" />
-            <circle cx="120" cy="242" r="3" fill="#888" opacity="0.5" />
-            <text x="115" y="247" textAnchor="end" fill="#666" fontSize="13" fontWeight="500">Gastric</text>
+            <line x1="145" y1="275" x2="85" y2="275" stroke="#999" strokeWidth="0.8" opacity="0.6" />
+            <circle cx="85" cy="275" r="2.5" fill="#999" opacity="0.6" />
+            <text x="80" y="279" textAnchor="end" fill="#777" fontSize="12" fontWeight="500">Gastric</text>
           </g>
 
           {/* Post-pyloric label */}
           <g>
-            <line x1="335" y1="342" x2="370" y2="342" stroke="#888" strokeWidth="1" opacity="0.5" />
-            <circle cx="370" cy="342" r="3" fill="#888" opacity="0.5" />
-            <text x="377" y="347" textAnchor="start" fill="#666" fontSize="13" fontWeight="500">Post-pyloric</text>
+            <line x1="378" y1="348" x2="420" y2="348" stroke="#999" strokeWidth="0.8" opacity="0.6" />
+            <circle cx="420" cy="348" r="2.5" fill="#999" opacity="0.6" />
+            <text x="428" y="352" textAnchor="start" fill="#777" fontSize="12" fontWeight="500">Post-pyloric</text>
           </g>
 
           {/* Parenteral label */}
           <g>
-            <line x1="103" y1="115" x2="103" y2="100" stroke="#888" strokeWidth="1" opacity="0.5" />
-            <circle cx="103" cy="100" r="3" fill="#888" opacity="0.5" />
-            <text x="103" y="93" textAnchor="middle" fill="#666" fontSize="13" fontWeight="500">Parenteral</text>
+            <line x1="152" y1="32" x2="152" y2="18" stroke="#999" strokeWidth="0.8" opacity="0.6" />
+            <circle cx="152" cy="18" r="2.5" fill="#999" opacity="0.6" />
+            <text x="152" y="12" textAnchor="middle" fill="#777" fontSize="12" fontWeight="500">Parenteral (IV)</text>
           </g>
 
-          {/* Nose/tube entry indicator */}
-          <circle cx="228" cy="50" r="4" fill="#FFB87A" opacity="0.6" />
+          {/* Anatomical labels */}
+          <text x="248" y="140" fill="#B09080" fontSize="10" fontWeight="400" opacity="0.5">Oesophagus</text>
+          <text x="282" y="340" fill="#A07060" fontSize="9" fontWeight="400" opacity="0.5">Pylorus</text>
+          <text x="368" y="355" fill="#A07060" fontSize="9" fontWeight="400" opacity="0" />
 
-          {/* Instruction hint at bottom */}
-          <text x="240" y="455" textAnchor="middle" fill="#BBBBBB" fontSize="12">
-            Drag a tube to the correct placement zone
+          {/* Instruction */}
+          <text x="260" y="472" textAnchor="middle" fill="#BBB" fontSize="12">
+            Drag a tube type to the correct placement zone
           </text>
         </svg>
       </div>
@@ -427,14 +528,14 @@ export function DragAnatomy({
       {/* Dragged item overlay */}
       {draggedItem && dragPosition && (
         <div
-          className="fixed w-[200px] h-20 bg-white border-2 border-blue rounded-xl flex items-center justify-center pointer-events-none z-50 shadow-card-hover"
+          className="fixed w-[200px] h-[56px] bg-white border-2 border-blue rounded-xl flex items-center justify-center pointer-events-none z-50 shadow-card-hover px-3"
           style={{
             left: dragPosition.x,
             top: dragPosition.y,
-            transform: 'scale(1.1) rotate(3deg)',
+            transform: 'scale(1.08) rotate(2deg)',
           }}
         >
-          <span className="body-text font-medium">{draggedItem.name}</span>
+          <span className="text-[20px] font-medium text-center leading-tight">{draggedItem.name}</span>
         </div>
       )}
     </div>
