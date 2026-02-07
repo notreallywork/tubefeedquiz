@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Question } from '@/types/game';
 import { ProgressBar } from '@/components/ProgressBar';
-import { ConfidenceSlider } from '@/components/ConfidenceSlider';
 import { DragAnatomy } from '@/components/DragAnatomy';
 import { SequenceQuestion } from '@/components/SequenceQuestion';
 
@@ -270,12 +269,10 @@ export function QuestionScreen({
   const [selected, setSelected] = useState<string | string[] | null>(
     question.type === 'multi' || question.type === 'sequence' ? [] : null
   );
-  const [confidence, setConfidence] = useState<number>(0.6);
 
   // Reset state when question changes
   useEffect(() => {
     setSelected(question.type === 'multi' || question.type === 'sequence' ? [] : null);
-    setConfidence(0.6);
   }, [question]);
 
   const handleSelect = useCallback((value: string | string[]) => {
@@ -290,22 +287,22 @@ export function QuestionScreen({
 
   const handleDragSubmit = useCallback((itemId: string) => {
     setSelected(itemId);
-    onSubmitAnswer(itemId, Math.round(confidence * 5));
+    onSubmitAnswer(itemId, 3);
     onNext();
-  }, [onSubmitAnswer, onNext, confidence]);
+  }, [onSubmitAnswer, onNext]);
 
   const handleSequenceComplete = useCallback((order: string[]) => {
     setSelected(order);
-    onSubmitAnswer(order, Math.round(confidence * 5));
+    onSubmitAnswer(order, 3);
     onNext();
-  }, [onSubmitAnswer, onNext, confidence]);
+  }, [onSubmitAnswer, onNext]);
 
   const handleConfirm = useCallback(() => {
     if (selected === null) return;
     playConfirmSound();
-    onSubmitAnswer(selected, Math.round(confidence * 5));
+    onSubmitAnswer(selected, 3);
     onNext();
-  }, [selected, confidence, onSubmitAnswer, onNext, playConfirmSound]);
+  }, [selected, onSubmitAnswer, onNext, playConfirmSound]);
 
   const canConfirm = selected !== null && (
     question.type === 'drag_anatomy' || 
@@ -394,12 +391,6 @@ export function QuestionScreen({
           )}
         </div>
 
-        {/* Confidence Slider (not for speed, drag, or sequence) */}
-        {question.type !== 'speed' && question.type !== 'drag_anatomy' && question.type !== 'sequence' && (
-          <div className="max-w-[800px] mx-auto w-full mt-8">
-            <ConfidenceSlider value={confidence} onChange={setConfidence} />
-          </div>
-        )}
       </div>
 
       {/* Footer with Confirm Button */}
